@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b46a0ca2-d254-4524-a381-b471b733d4c0" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="transform_arraylist_to_soql_inclauseFlow" doc:id="9bb91d4c-2613-4c15-953b-4690b9c09a9b" >
+		<http:listener doc:name="Listener" doc:id="056d123e-e325-42e9-822e-f2c317d79be2" config-ref="HTTP_Listener_config" path="/transform"/>
+		<logger level="INFO" doc:name="Logger" doc:id="410ea182-e6ba-467f-b52a-3cb11cef61f4" message="#[payload]"/>
+		<flow-ref doc:name="Flow Reference" doc:id="9e982cf2-8d45-4f18-9113-8085357fb52f" name="transform"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e275604d-135e-448e-bf57-3b0f51b07cd9" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="fd34f5a8-d156-4272-b40c-9460e5028e88" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"transformedList": payload,
+	"transformedListInSOQL": 'select Id,Name from Account Where Id in '++ payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="bc39482d-32de-4092-9266-a5da3f9aae4e" message="#[payload]"/>
+	</flow>
+	<sub-flow name="transform" doc:id="d84229de-3cd9-4005-944d-384a40b9af84" >
+		<java:invoke-static method="codeList(java.util.List)" doc:name="Invoke static" doc:id="7d010763-48b2-48bb-9941-ef37e8b2b18e" class="transform_arraylist_to_soql_inclause.Transformations">
+			<java:args ><![CDATA[#[{arg0:payload.arrayList}]]]></java:args>
+		</java:invoke-static>
+	</sub-flow>
+</mule>
