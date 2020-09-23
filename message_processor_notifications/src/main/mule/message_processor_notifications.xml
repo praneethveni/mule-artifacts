@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:spring="http://www.mulesoft.org/schema/mule/spring"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/spring
+http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+	<!-- <bean name="notificationLogger" class="org.myfirm.ProcessorNotificationStore" 
+		/> -->
+
+	<spring:config name="springConfig"
+		doc:name="Spring Config" files="beans.xml" />
+	<notifications>
+		<notification event="MESSAGE-PROCESSOR" />
+		<notification-listener
+			ref="messageProcessorNotifications" />
+	</notifications>
+
+
+
+
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="675c1caa-6c95-4a56-a29b-0dc0bce222d2">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+	<flow name="transform_arraylist_to_soql_inclauseFlow"
+		doc:id="29410e2d-0a50-4594-8bd2-42709b4e6745">
+		<http:listener doc:name="Listener"
+			doc:id="ff482c62-e403-4879-a7f8-eee609f22405"
+			config-ref="HTTP_Listener_config" path="/notify" />
+		<ee:transform doc:name="Load_Json"
+			doc:id="0420a020-7694-4787-bf14-5d846a774f4a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+
+readUrl("classpath://examples/Request_Payload.json", "application/json")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Request_Logger"
+			doc:id="8a11198c-074b-42ff-835e-baf68a1bc48f" message="#[payload]" />
+		<flow-ref doc:name="Structure_Transform"
+			doc:id="8ef8d93e-41fd-4351-b8cd-1e265a2ab48d" name="transform" />
+		<logger level="INFO" doc:name="Response_Logger"
+			doc:id="85a36f4b-1c7c-468a-9136-8be2f634f6a0" message="#[payload]" />
+		<ee:transform doc:name="Response_Transformation"
+			doc:id="7a875509-7127-472f-a1b8-604d3f600501">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"transformedList": payload,
+	"transformedListInSOQL": 'select Id,Name from Account Where Id in '++ payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Final_Logger"
+			doc:id="b679c0de-ad3d-4627-8d37-632741e50bcb" message="#[payload]" />
+	</flow>
+	<sub-flow name="transform"
+		doc:id="4fede007-766f-46f5-b275-cd6204739f08">
+		<java:invoke-static
+			method="codeList(java.util.List)" doc:name="Transform_ArrayList"
+			doc:id="15577558-0d4d-41a7-b687-a697f001484b"
+			class="message_processor_notifications.Transformations">
+			<java:args><![CDATA[#[{arg0:payload.arrayList}]]]></java:args>
+		</java:invoke-static>
+	
+</sub-flow>
+</mule>
