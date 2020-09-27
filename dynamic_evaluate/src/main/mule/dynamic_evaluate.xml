@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6649b212-acd3-48ad-bafc-91b5428b6b26" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="dynamic_evaluateFlow" doc:id="ff449c3e-16a8-4c19-b5ec-db125450537e" >
+		<http:listener doc:name="Listener" doc:id="0e67c16e-c858-4fb6-9e34-2d2e2cc5816a" config-ref="HTTP_Listener_config" path="/dynamic/evaluate"/>
+		<ee:transform doc:name="Transform Message" doc:id="f91a91ce-686a-4e9d-b683-943d2d1a09e6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"firstName": "Hello",
+	"lastName": "World",
+	"address1": "Hyderabad",
+	"address2": "India",
+	"company": "Technology"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="fileReadScript" ><![CDATA[%dw 2.0
+output application/java
+var scriptpath = 'classpath://dwl_scripts/' ++ (attributes.queryParams.appName) ++ '.dwl'
+---
+readUrl(scriptpath, 'text/plain')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:dynamic-evaluate doc:name="Dynamic Evaluate" doc:id="5a52a02d-91cc-4bb2-a68b-7820035eb8b2" expression="#[vars.fileReadScript]">
+			<ee:parameters >#[payload]</ee:parameters>
+		</ee:dynamic-evaluate>
+	</flow>
+</mule>
